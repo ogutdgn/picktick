@@ -1,4 +1,4 @@
-package com.example.picktick.ui.theme
+package com.example.front_end.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

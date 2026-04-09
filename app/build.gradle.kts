@@ -4,15 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.picktick"
+    namespace = "com.example.front_end"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.picktick"
+        applicationId = "com.example.front_end"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
