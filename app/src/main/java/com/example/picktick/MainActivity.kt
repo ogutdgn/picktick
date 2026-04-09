@@ -19,9 +19,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PicktickTheme {
+                val tester = SQLiteHelper_Listings(this)
+                val map_thing = tester.get_listing_from_id(0)
+                val title = map_thing.get("title") ?: "arriba"
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Android",
+                        name = title,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
