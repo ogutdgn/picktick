@@ -1,4 +1,4 @@
-package com.example.picktick
+package com.example.front_end
 
 import org.junit.Test
 
