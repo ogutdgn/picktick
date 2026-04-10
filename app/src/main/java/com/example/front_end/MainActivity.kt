@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
             MainNavigation()
         }
     }
+    // hello
 }
 
 enum class UserType { BUYER, SELLER, ADMIN, NONE }
