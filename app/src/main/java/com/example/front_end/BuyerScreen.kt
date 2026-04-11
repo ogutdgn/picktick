@@ -213,7 +213,8 @@ fun DateRangeFilter() {
 @Composable
 fun ShoppingCartScreen(
     cartTickets: List<TicketListing>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onCheckout: () -> Unit
 ) {
     // State for those small blue boxes you wanted
     val selectedTicketIds = remember { mutableStateListOf<String>() }
@@ -229,12 +230,28 @@ fun ShoppingCartScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
             )
+        },
+                bottomBar = {
+            if (cartTickets.isNotEmpty()) {
+                Button(
+                    onClick = onCheckout,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PickTickBlue)
+                ) {
+                    Text("Proceed to Payment", color = Color.White)
+
+                }
+            }
         }
+
+
     ) { padding ->
         if (cartTickets.isEmpty()) {
             // THE "EMPTY" FACE
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Your cart is empty. Go find some tickets!", color = Color.Gray)
+                Text("Your cart is empty!!", color = Color.Gray)
             }
         } else {
             // THE "LIST" FACE

@@ -33,7 +33,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Dashboard
+
 
 
 val PickTickBlue = Color(0xFF0074BD)
@@ -79,12 +91,14 @@ fun MainNavigation() {
                     // When login is pressed, go to Role Selection (State 4)
                     screenState = 4
                 },
-                onNavigateToRegister = { screenState = 2 }
+                onNavigateToRegister = { screenState = 2 },
+                onNavigateToReset = { screenState = 6 }
             )
 
             2 -> RegisterScreen(
                 onNavigateToLogin = { screenState = 1 }
             )
+            6 -> PassResetScreen(onBackToLogin = { screenState = 1 })
 
             4 -> RoleSelectionScreen(
                 onRoleSelected = { type ->
@@ -99,14 +113,16 @@ fun MainNavigation() {
                 onTicketClick = { ticket ->
                     selectedTicket = ticket
                     screenState = 5
-                }
+                },
+                onLogout = { screenState = 1 }
+
             )
             5 -> TicketDetailScreen(
                 ticket = selectedTicket,
                 onBack = { screenState = 3 },
-                userType = currentUserType,
+                userType = currentUserType, // This tells the screen who is looking
                 onAddToCart = { ticketToAdd ->
-                    if (myCartList.contains(ticketToAdd) == false) {
+                    if (!myCartList.contains(ticketToAdd)) {
                         myCartList.add(ticketToAdd)
                     }
                 }
@@ -158,7 +174,7 @@ fun PickTickSplashScreen() {
 }
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
+fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit, onNavigateToReset: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -232,15 +248,17 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
         )
 
-        // SIGN UP LINK ALIGNED LEFT
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+        // SIGN UP LINK LEFT AND FORGETPASS RIGHT
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween // Pushes items to opposite sides
+        ) {
             TextButton(onClick = onNavigateToRegister) {
-                Text(
-                    text = "Sign up",
-                    color = PickTickBlue,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+                Text("Sign up", color = PickTickBlue, fontWeight = FontWeight.Bold)
+            }
+
+            TextButton(onClick = onNavigateToReset) {
+                Text("Forgot your password?", color = PickTickOrange, fontSize = 12.sp)
             }
         }
 
@@ -258,37 +276,218 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onNavigateToRegister: () -> Unit) {
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(onNavigateToLogin: () -> Unit) {
+    // 1. State for all your fields
+    var fullName by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var userType by remember { mutableStateOf("Buyer") } // Default value
+
+    // State for the DatePicker and Dropdown menus
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTypeMenu by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()), // Allows scrolling on smaller screens
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Create Account", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = PickTickBlue)
         Spacer(modifier = Modifier.height(24.dp))
 
-        OutlinedTextField(value = "", onValueChange = {}, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
+        // Full Name
+        OutlinedTextField(
+            value = fullName,
+            onValueChange = { fullName = it },
+            label = { Text("Full Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(value = "", onValueChange = {}, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+        // 1. Date of Birth (Click to open Calendar)
+        OutlinedTextField(
+            value = dob,
+            onValueChange = { },
+            label = { Text("Date of Birth") },
+            readOnly = true, // Prevent manual typing
+            trailingIcon = {
+                IconButton(onClick = { showDatePicker = true }) {
+                    Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(value = "", onValueChange = {}, label = { Text("New Password") }, modifier = Modifier.fillMaxWidth())
+        // 2. Username
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Username") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 3. User Type Dropdown (Buyer or Seller)
+        ExposedDropdownMenuBox(
+            expanded = showTypeMenu,
+            onExpandedChange = { showTypeMenu = !showTypeMenu },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = userType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("I am a...") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeMenu) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = showTypeMenu,
+                onDismissRequest = { showTypeMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Buyer") },
+                    onClick = { userType = "Buyer"; showTypeMenu = false }
+                )
+                DropdownMenuItem(
+                    text = { Text("Seller") },
+                    onClick = { userType = "Seller"; showTypeMenu = false }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Email & Password
+        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("New Password") }, modifier = Modifier.fillMaxWidth())
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { /* Register Action */ },
+            onClick = { /* Save these states later */ },
             colors = ButtonDefaults.buttonColors(containerColor = PickTickOrange),
             modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text("Sign Up", color = Color.White)
         }
 
         TextButton(onClick = onNavigateToLogin) {
             Text("Already have an account? Login", color = Color.Gray)
+        }
+    }
+
+    // --- Date Picker Dialog Logic ---
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val selectedDate = datePickerState.selectedDateMillis
+                    if (selectedDate != null) {
+                        // Simple formatting (You can use a proper formatter here)
+                        dob = java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.getDefault()).format(java.util.Date(selectedDate))
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+@Composable
+fun PassResetScreen(onBackToLogin: () -> Unit) {
+    // 1 = Enter Email, 2 = Enter Confirmation, 3 = New Password
+    var step by remember { mutableStateOf(1) }
+    var email by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Reset Password",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = PickTickBlue
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        when (step) {
+            1 -> {
+                // STEP 1: ENTER EMAIL
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Enter your email") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { step = 2 },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PickTickBlue)
+                ) {
+                    Text("Send Code")
+                }
+            }
+            2 -> {
+                // STEP 2: ENTER CONFIRMATION
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    label = { Text("Enter Confirmation Code") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { step = 3 },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PickTickBlue)
+                ) {
+                    Text("Verify Code")
+                }
+            }
+            3 -> {
+                // STEP 3: NEW PASSWORD
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = { Text("New Password") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onBackToLogin, // Lead back to Login
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PickTickOrange)
+                ) {
+                    Text("Confirm New Password")
+                }
+            }
+        }
+
+        TextButton(onClick = onBackToLogin) {
+            Text("Cancel", color = Color.Gray)
         }
     }
 }
@@ -323,12 +522,17 @@ fun RoleSelectionScreen(onRoleSelected: (UserType) -> Unit) {
 }
 
 @Composable
-fun PickTickDashboard(userType: UserType,
-                      onTicketClick: (TicketListing) -> Unit,
-                      cartList: MutableList<TicketListing>) {
+fun PickTickDashboard(
+    userType: UserType,
+    onTicketClick: (TicketListing) -> Unit, // This triggers the ticket detail screen
+    cartList: MutableList<TicketListing>,
+    onLogout: () -> Unit
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var selectedTicket by remember { mutableStateOf<TicketListing?>(null) }
     var currentScreen by remember { mutableStateOf("dashboard") }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -336,28 +540,80 @@ fun PickTickDashboard(userType: UserType,
             ModalDrawerSheet {
                 Text("PickTick Menu", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
                 HorizontalDivider()
-                NavigationDrawerItem(label = { Text("User Profile") }, selected = false, onClick = {})
 
+                // Common Items
+                NavigationDrawerItem(
+                    label = { Text("Marketplace") },
+                    selected = currentScreen == "dashboard",
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    onClick = {
+                        currentScreen = "dashboard"
+                        scope.launch { drawerState.close() }
+                    }
+                )
+
+                NavigationDrawerItem(
+                    label = { Text("User Profile") },
+                    selected = currentScreen == "profile",
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    onClick = {
+                        currentScreen = "profile"
+                        scope.launch { drawerState.close() }
+                    }
+                )
+
+                NavigationDrawerItem(
+                    label = { Text("Chatbox") },
+                    selected = currentScreen == "chatbox",
+                    icon = { Icon(Icons.Default.Chat, contentDescription = null) },
+                    onClick = {
+                        currentScreen = "chatbox"
+                        scope.launch { drawerState.close() }
+                    }
+                )
+
+                // Role Specific Items
                 if (userType == UserType.BUYER) {
                     NavigationDrawerItem(
                         label = { Text("Shopping Cart") },
-                        selected = currentScreen == "shopping_cart", // Highlighting if active
+                        selected = currentScreen == "shopping_cart",
                         icon = { Icon(Icons.Default.ShoppingCart, contentDescription = null) },
                         onClick = {
-                            currentScreen = "shopping_cart" // 1. Change the screen
-                            scope.launch { drawerState.close() } // 2. Close the drawer
+                            currentScreen = "shopping_cart"
+                            scope.launch { drawerState.close() }
                         }
                     )
                 }
-                if (userType == UserType.SELLER || userType == UserType.ADMIN) {
-                    NavigationDrawerItem(label = { Text("Sales Dashboard") }, selected = false, onClick = {})
-                }
 
-                NavigationDrawerItem(label = { Text("Settings") }, selected = false, onClick = {})
+                if (userType == UserType.SELLER) {
+                    NavigationDrawerItem(
+                        label = { Text("Sales Dashboard") },
+                        icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
+                        selected = false,
+                        onClick = { currentScreen = "sales_dashboard"
+                            scope.launch { drawerState.close() } }
+                    )
+                }
 
                 if (userType == UserType.ADMIN) {
-                    NavigationDrawerItem(label = { Text("System Logs") }, selected = false, onClick = {})
+                    NavigationDrawerItem(
+                        label = { Text("System Logs") },
+                        selected = false,
+                        onClick = { /* Implement Admin Logs Later */ }
+                    )
                 }
+
+                Spacer(modifier = Modifier.weight(1f)) // Push logout to the bottom
+
+                NavigationDrawerItem(
+                    label = { Text("Log Out") },
+                    selected = false,
+                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
+                    onClick = {
+                        showLogoutDialog = true
+                        scope.launch { drawerState.close() }
+                    }
+                )
             }
         }
     ) {
@@ -375,7 +631,6 @@ fun PickTickDashboard(userType: UserType,
                             Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
                         }
 
-                        // Logo with aligned Border and Fill
                         Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
                             val logoText = "🎫  PickTick  🎫"
                             Text(
@@ -406,28 +661,93 @@ fun PickTickDashboard(userType: UserType,
                     .fillMaxSize()
                     .background(Color(0xFFE0E0E0))
             ) {
-                // --- CHANGE THIS PART ---
                 when (currentScreen) {
                     "shopping_cart" -> {
-                        // This is where you call your new screen
                         ShoppingCartScreen(
                             cartTickets = cartList,
+                            onBack = { currentScreen = "dashboard" },
+                            onCheckout = { currentScreen = "payment" }
+                        )
+                    }
+                    "profile" -> {
+                        // Pass the userType variable here
+                        UserProfileScreen(
+                            userType = userType,
                             onBack = { currentScreen = "dashboard" }
                         )
                     }
+                    "chatbox" -> {
+                        ChatboxScreen()
+                    }
+                    "sales_dashboard" -> {
+                        SalesDashboardScreen(
+                            onListNewTicket = { currentScreen = "create_ticket" },
+                            onModifyTicket = { ticket ->
+                                selectedTicket = ticket
+                                currentScreen = "modify_ticket"
+                            }
+                        )
+                    }
+                    "create_ticket" -> {
+                        TicketCreateScreen(
+                            onBack = { currentScreen = "sales_dashboard" }
+                        )
+                    }
+                    "modify_ticket" -> {
+                        selectedTicket?.let {
+                            ModifyListingScreen(ticket = it, onBack = { currentScreen = "sales_dashboard" })
+                        }
+                    }
+
+
+                    // Handle payment screen if you have it
+                    "payment" -> {
+                        // Your PaymentScreen call here
+                    }
                     else -> {
-                        // Show the original dashboards if we aren't in the cart
+                        // The "Marketplace" section
                         when (userType) {
                             UserType.BUYER -> {
-                                BuyerDashboard(onTicketClick = onTicketClick, cartList = cartList)
+                                BuyerDashboard(
+                                    onTicketClick = onTicketClick,
+                                    cartList = cartList
+                                )
                             }
-                            UserType.SELLER -> SellerDashboard()
-                            UserType.ADMIN -> AdminDashboard()
+                            UserType.SELLER -> {
+                                // FIX: Added the onTicketClick parameter
+                                SellerDashboard(onTicketClick = onTicketClick)
+                            }
+                            UserType.ADMIN -> {
+                                // FIX: Ensure your AdminDashboard is defined or use a placeholder
+                                Text("Admin Marketplace View", modifier = Modifier.align(Alignment.Center))
+                            }
                             else -> Text("Please select a valid role.")
                         }
                     }
                 }
             }
+        }
+
+        // Logout Confirmation Dialog
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text("Log Out") },
+                text = { Text("Are you sure you want to Log out your account?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }) {
+                        Text("Yes", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text("No")
+                    }
+                }
+            )
         }
     }
 }
@@ -520,7 +840,10 @@ fun DetailChip(text: String, isPrice: Boolean = false) {
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TicketDetailScreen(ticket: TicketListing?, onBack: () -> Unit, userType: UserType, onAddToCart: (TicketListing) -> Unit) {
+fun TicketDetailScreen(ticket: TicketListing?,
+                       onBack: () -> Unit,
+                       userType: UserType,
+                       onAddToCart: (TicketListing) -> Unit) {
     if (ticket == null) return // Safety check
 
     Scaffold(
@@ -540,7 +863,7 @@ fun TicketDetailScreen(ticket: TicketListing?, onBack: () -> Unit, userType: Use
             if (userType == UserType.BUYER) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = PickTickBlue,
+                    color = Color.White, // Clean background for the button area
                     shadowElevation = 8.dp
                 ) {
                     Box(
@@ -549,21 +872,18 @@ fun TicketDetailScreen(ticket: TicketListing?, onBack: () -> Unit, userType: Use
                             .navigationBarsPadding()
                     ) {
                         Button(
-                            onClick = { ticket?.let {
-                                onAddToCart(it)
-                            } },
+                            onClick = { onAddToCart(ticket) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50) // Green
-                            ),
-                            border = BorderStroke(2.dp, Color.DarkGray) // Magenta Border
+                                containerColor = PickTickOrange
+                            )
                         ) {
                             Text(
-                                text = "Add to shopping cart",
-                                color = Color.DarkGray,
+                                text = "Add to Shopping Cart",
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -618,3 +938,113 @@ fun DetailRow(label: String, value: String) {
     }
 }
 
+@Composable
+fun UserProfileHeader(
+    username: String,
+    email: String,
+    description: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "User Avatar",
+                modifier = Modifier.size(70.dp),
+                tint = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Info
+        Column {
+            Text(
+                text = username,
+                style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            )
+            Text(
+                text = email,
+                style = TextStyle(fontSize = 14.sp, color = Color.Gray)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = description,
+                style = TextStyle(fontSize = 12.sp, color = Color.DarkGray, fontStyle = FontStyle.Italic)
+            )
+        }
+    }
+}
+
+@Composable
+fun SellerTicketHistory() {
+    val historyTicket = TicketListing(
+        id = "0193",
+        title = "Nintendo Expo",
+        eventName = "Nintendo Showcase of Dallas",
+        date = "Nov 05",
+        time = "10:00 AM",
+        location = "Dallas, TX",
+        price = "$50",
+        category = "Expo",
+        seat = "N/A",
+        description = "Full access to all booths."
+    )
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = "Ticket History",
+            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+        )
+
+        Box(modifier = Modifier.alpha(0.8f)) {
+            TicketItem(listing = historyTicket, onClick = { /* History click */ })
+
+            Text(
+                text = "PAID",
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(20.dp)
+                    .graphicsLayer(rotationZ = 15f),
+                color = Color.Red.copy(alpha = 0.5f),
+                fontWeight = FontWeight.Black,
+                fontSize = 24.sp
+            )
+        }
+    }
+}
+@Composable
+fun UserProfileScreen(userType: UserType, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F8F8))
+            .verticalScroll(rememberScrollState())
+    ) {
+        // 1. Show header for everyone
+        UserProfileHeader(
+            username = "Pter",
+            email = "pxn0340@gmail.com",
+            description = "Get to know me more at Ins:@PterPsleep"
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+        // 2. Only show history if the user is a SELLER
+        if (userType == UserType.BUYER) {
+            SellerTicketHistory()
+        }
+    }
+}
