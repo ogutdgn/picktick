@@ -55,6 +55,7 @@ fun AppNavigation(appState: AppState) {
         is Screen.SalesDashboard -> SalesDashboardScreen(appState)
         is Screen.CreateListing -> CreateListingScreen(appState)
         is Screen.ModifyListing -> ModifyListingScreen(appState, screen.ticketId)
+        is Screen.PublicProfile -> PublicProfileScreen(appState, screen.userId)
     }
 }
 

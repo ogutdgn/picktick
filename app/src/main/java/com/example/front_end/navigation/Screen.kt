@@ -17,4 +17,5 @@ sealed class Screen {
     object SalesDashboard : Screen()
     object CreateListing : Screen()
     data class ModifyListing(val ticketId: String) : Screen()
+    data class PublicProfile(val userId: String) : Screen()
 }

@@ -55,8 +55,8 @@ fun ChatListScreen(appState: AppState) {
 @Composable
 fun ChatThreadScreen(appState: AppState, threadId: String) {
     val backDestination = when (appState.currentUser?.role) {
-        UserRole.SELLER -> Screen.SellerDashboard
-        else -> Screen.BuyerDashboard
+        UserRole.ADMIN -> Screen.AdminDashboard
+        else -> Screen.ChatList
     }
 
     Scaffold(
@@ -64,7 +64,7 @@ fun ChatThreadScreen(appState: AppState, threadId: String) {
             TopAppBar(
                 title = { Text("Chat", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { appState.navigate(Screen.ChatList) }) {
+                    IconButton(onClick = { appState.navigate(backDestination) }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
@@ -76,7 +76,7 @@ fun ChatThreadScreen(appState: AppState, threadId: String) {
             modifier = Modifier.padding(padding).fillMaxSize().background(Color.White),
             contentAlignment = Alignment.Center
         ) {
-            Text("Chat thread coming soon", color = Color.Gray)
+            Text("Chat coming in Phase 4", color = Color.Gray)
         }
     }
 }
