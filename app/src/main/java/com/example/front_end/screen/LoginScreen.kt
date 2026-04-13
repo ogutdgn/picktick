@@ -97,14 +97,17 @@ fun LoginScreen(appState: AppState) {
 
         Button(
             onClick = {
-                val user = AuthService.login(email.trim(), password)
+                val trimmedEmail = email.trim()
+                val user = AuthService.login(trimmedEmail, password)
                 if (user == null) {
-                    errorMessage = "Invalid email or password."
+                    errorMessage = when {
+                        AuthService.isBanned(trimmedEmail) -> "This account has been banned. Please contact support."
+                        else -> "Invalid email or password."
+                    }
                 } else {
                     appState.currentUser = user
                     when (user.role) {
-                        UserRole.BUYER -> appState.navigate(Screen.BuyerDashboard)
-                        UserRole.SELLER -> appState.navigate(Screen.SellerDashboard)
+                        UserRole.USER -> appState.navigate(Screen.UserDashboard)
                         UserRole.ADMIN -> appState.navigate(Screen.AdminDashboard)
                     }
                 }

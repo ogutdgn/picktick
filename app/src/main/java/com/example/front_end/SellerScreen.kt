@@ -1,10 +1,8 @@
 package com.example.front_end
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,8 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,245 +22,221 @@ import com.example.front_end.model.TicketListing
 import com.example.front_end.navigation.AppState
 import com.example.front_end.navigation.Screen
 import com.example.front_end.service.TicketService
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SellerDashboardShell(appState: AppState) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    var showLogoutDialog by remember { mutableStateOf(false) }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text("PickTick Menu", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
-                HorizontalDivider()
-
-                NavigationDrawerItem(
-                    label = { Text("Marketplace") },
-                    selected = true,
-                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                    onClick = { scope.launch { drawerState.close() } }
-                )
-                NavigationDrawerItem(
-                    label = { Text("Sales Dashboard") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        appState.navigate(Screen.SalesDashboard)
-                    }
-                )
-                NavigationDrawerItem(
-                    label = { Text("User Profile") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        appState.navigate(Screen.Profile)
-                    }
-                )
-                NavigationDrawerItem(
-                    label = { Text("Chatbox") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.Chat, contentDescription = null) },
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        appState.navigate(Screen.ChatList)
-                    }
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                NavigationDrawerItem(
-                    label = { Text("Log Out") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
-                    onClick = {
-                        showLogoutDialog = true
-                        scope.launch { drawerState.close() }
-                    }
-                )
-            }
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.1f), color = PickTickBlue) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp)
-                        ) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
-                        }
-                        Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "🎫  PickTick  🎫",
-                                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PickTickOrange, drawStyle = Stroke(miter = 10f, width = 5f))
-                            )
-                            Text(
-                                text = "🎫  PickTick  🎫",
-                                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            )
-                        }
-                    }
-                }
-            }
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(Color(0xFFE0E0E0))) {
-                SellerMarketplace(appState)
-            }
-        }
-
-        if (showLogoutDialog) {
-            AlertDialog(
-                onDismissRequest = { showLogoutDialog = false },
-                title = { Text("Log Out") },
-                text = { Text("Are you sure you want to log out?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showLogoutDialog = false
-                        appState.logout()
-                    }) { Text("Yes", color = Color.Red) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showLogoutDialog = false }) { Text("No") }
-                }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SellerMarketplace(appState: AppState) {
-    var searchQuery by remember { mutableStateOf("") }
-    val categories = listOf("All", "Music", "Sports", "Expo", "Theater", "Travel")
-    var selectedCategory by remember { mutableStateOf("All") }
-    val listings = remember { TicketService.getAllActiveListings() }
-
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            placeholder = { Text("Search Marketplace", color = Color.Gray) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-            shape = RoundedCornerShape(25.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = PickTickOrange,
-                unfocusedBorderColor = Color.Transparent
-            ),
-            singleLine = true
-        )
-
-        LazyRow(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(categories) { category ->
-                FilterChip(
-                    selected = (category == selectedCategory),
-                    onClick = { selectedCategory = category },
-                    label = { Text(category) }
-                )
-            }
-        }
-
-        PriceRangeBar()
-        DateRangeFilter()
-
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
-            val filtered = listings.filter {
-                (selectedCategory == "All" || it.category == selectedCategory) &&
-                        it.title.contains(searchQuery, ignoreCase = true)
-            }
-            items(filtered) { listing ->
-                TicketItem(listing = listing, onClick = { appState.navigate(Screen.TicketDetail(listing.id)) })
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SalesDashboardScreen(appState: AppState) {
+fun MyListingsContent(appState: AppState) {
     val sellerId = appState.currentUser?.userId ?: ""
     var myListings by remember { mutableStateOf(TicketService.getListingsBySeller(sellerId)) }
-    var showConfirmDialog by remember { mutableStateOf(false) }
-    var selectedForModify by remember { mutableStateOf<TicketListing?>(null) }
 
-    if (showConfirmDialog) {
+    val filterOptions = listOf("All", "Published", "Unpublished", "Sold")
+    var selectedFilter by remember { mutableStateOf("All") }
+    var filterDropdownExpanded by remember { mutableStateOf(false) }
+
+    var toggleTarget by remember { mutableStateOf<TicketListing?>(null) }
+
+    if (toggleTarget != null) {
+        val listing = toggleTarget!!
+        val willPublish = listing.status == ListingStatus.UNPUBLISHED
         AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Modify Listing") },
-            text = { Text("Do you want to modify this ticket?") },
+            onDismissRequest = { toggleTarget = null },
+            title = { Text(if (willPublish) "Publish Listing" else "Unpublish Listing") },
+            text = {
+                Text(
+                    if (willPublish) "Publish \"${listing.title}\"? It will be visible to all buyers."
+                    else "Unpublish \"${listing.title}\"? It will be hidden from the marketplace."
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    showConfirmDialog = false
-                    selectedForModify?.let { appState.navigate(Screen.ModifyListing(it.id)) }
-                }) { Text("Yes", color = PickTickBlue, fontWeight = FontWeight.Bold) }
+                    TicketService.togglePublish(listing.id)
+                    myListings = TicketService.getListingsBySeller(sellerId)
+                    toggleTarget = null
+                }) {
+                    Text(
+                        if (willPublish) "Publish" else "Unpublish",
+                        color = if (willPublish) Color(0xFF4CAF50) else Color.Red,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) { Text("No", color = Color.Red) }
+                TextButton(onClick = { toggleTarget = null }) { Text("Cancel") }
             }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Sales Dashboard", color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = { appState.navigate(Screen.SellerDashboard) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
-            )
-        },
-        bottomBar = {
-            Button(
-                onClick = { appState.navigate(Screen.CreateListing) },
-                modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PickTickOrange)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
-                Spacer(Modifier.width(8.dp))
-                Text("List New Ticket", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
+    val filteredListings = myListings.filter {
+        when (selectedFilter) {
+            "Published" -> it.status == ListingStatus.ACTIVE
+            "Unpublished" -> it.status == ListingStatus.UNPUBLISHED
+            "Sold" -> it.status == ListingStatus.SOLD
+            else -> true
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF5F5F5))) {
-            Text(
-                "My Current Listings",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp),
-                fontWeight = FontWeight.Bold
-            )
-            if (myListings.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No listings yet. Create one!", color = Color.Gray)
+    }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box {
+                TextButton(onClick = { filterDropdownExpanded = true }) {
+                    Text(selectedFilter, fontWeight = FontWeight.SemiBold, color = Color(0xFF333333), fontSize = 14.sp)
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color(0xFF333333))
                 }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                    items(myListings) { listing ->
-                        SellerTicketItem(
-                            listing = listing,
-                            onModifyRequest = {
-                                selectedForModify = listing
-                                showConfirmDialog = true
+                DropdownMenu(
+                    expanded = filterDropdownExpanded,
+                    onDismissRequest = { filterDropdownExpanded = false }
+                ) {
+                    filterOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    option,
+                                    fontWeight = if (option == selectedFilter) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (option == selectedFilter) PickTickBlue else Color(0xFF333333)
+                                )
+                            },
+                            onClick = {
+                                selectedFilter = option
+                                filterDropdownExpanded = false
                             }
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
+                }
+            }
+
+            Button(
+                onClick = { appState.navigate(Screen.CreateListing) },
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PickTickOrange),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Create Listing", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+        }
+
+        HorizontalDivider(color = Color(0xFFEEEEEE))
+
+        if (filteredListings.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No listings found.", color = Color.Gray, fontSize = 15.sp)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filteredListings) { listing ->
+                    SellerTicketItem(
+                        listing = listing,
+                        onEditClick = { appState.navigate(Screen.ModifyListing(listing.id)) },
+                        onTogglePublish = { toggleTarget = listing }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SellerTicketItem(
+    listing: TicketListing,
+    onEditClick: () -> Unit,
+    onTogglePublish: () -> Unit
+) {
+    val isPublished = listing.status == ListingStatus.ACTIVE
+    val isSold = listing.status == ListingStatus.SOLD
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(listing.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(listing.eventName, color = Color.Gray, fontSize = 13.sp)
+                Text(
+                    "${listing.date}  •  $${listing.price.toInt()}",
+                    color = PickTickOrange,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = when (listing.status) {
+                        ListingStatus.ACTIVE -> Color(0xFF4CAF50).copy(alpha = 0.12f)
+                        ListingStatus.UNPUBLISHED -> Color.Gray.copy(alpha = 0.15f)
+                        ListingStatus.SOLD -> Color.Red.copy(alpha = 0.12f)
+                    }
+                ) {
+                    Text(
+                        text = when (listing.status) {
+                            ListingStatus.ACTIVE -> "Published"
+                            ListingStatus.UNPUBLISHED -> "Unpublished"
+                            ListingStatus.SOLD -> "Sold"
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (listing.status) {
+                            ListingStatus.ACTIVE -> Color(0xFF4CAF50)
+                            ListingStatus.UNPUBLISHED -> Color.Gray
+                            ListingStatus.SOLD -> Color.Red
+                        },
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (!isSold) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (isPublished) "Published" else "Publish",
+                            fontSize = 12.sp,
+                            color = if (isPublished) Color(0xFF4CAF50) else Color.Gray,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Switch(
+                            checked = isPublished,
+                            onCheckedChange = { onTogglePublish() },
+                            modifier = Modifier.height(24.dp),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF4CAF50),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color.LightGray
+                            )
+                        )
+                    }
+                }
+                OutlinedButton(
+                    onClick = onEditClick,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp), tint = PickTickBlue)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Edit", fontSize = 12.sp, color = PickTickBlue)
                 }
             }
         }
@@ -283,6 +255,7 @@ fun CreateListingScreen(appState: AppState) {
     var priceInput by remember { mutableStateOf("") }
     var proofCode by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    var publishNow by remember { mutableStateOf(true) }
 
     val categories = listOf("Music", "Sports", "Expo", "Theater", "Travel")
     var selectedCategory by remember { mutableStateOf(categories[0]) }
@@ -300,7 +273,10 @@ fun CreateListingScreen(appState: AppState) {
             TopAppBar(
                 title = { Text("Create New Listing", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { appState.navigate(Screen.SalesDashboard) }) {
+                    IconButton(onClick = {
+                        appState.userSelectedTab = 1
+                        appState.navigate(Screen.UserDashboard)
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
@@ -389,13 +365,39 @@ fun CreateListingScreen(appState: AppState) {
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 maxLines = 4
             )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Publish it now", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text(
+                        if (publishNow) "Visible in marketplace immediately" else "Saved as unpublished draft",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+                Switch(
+                    checked = publishNow,
+                    onCheckedChange = { publishNow = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF4CAF50),
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color.LightGray
+                    )
+                )
+            }
 
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(errorMessage, color = Color.Red, fontSize = 13.sp)
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
@@ -420,9 +422,11 @@ fun CreateListingScreen(appState: AppState) {
                                 seat = seat.trim(),
                                 description = description.trim(),
                                 sellerId = sellerId,
-                                proofCode = proofCode.trim()
+                                proofCode = proofCode.trim(),
+                                published = publishNow
                             )
-                            appState.navigate(Screen.SalesDashboard)
+                            appState.userSelectedTab = 1
+                            appState.navigate(Screen.UserDashboard)
                         }
                     }
                 },
@@ -433,7 +437,10 @@ fun CreateListingScreen(appState: AppState) {
                 Text("Create Listing", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
-            TextButton(onClick = { appState.navigate(Screen.SalesDashboard) }) {
+            TextButton(onClick = {
+                appState.userSelectedTab = 1
+                appState.navigate(Screen.UserDashboard)
+            }) {
                 Text("Cancel", color = Color.Gray)
             }
         }
@@ -500,9 +507,12 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Modify Listing #${ticket.id}", color = Color.White) },
+                title = { Text("Modify Listing", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { appState.navigate(Screen.SalesDashboard) }) {
+                    IconButton(onClick = {
+                        appState.userSelectedTab = 1
+                        appState.navigate(Screen.UserDashboard)
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
@@ -596,7 +606,8 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
                             description = description.trim()
                         )
                     )
-                    appState.navigate(Screen.SalesDashboard)
+                    appState.userSelectedTab = 1
+                    appState.navigate(Screen.UserDashboard)
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -605,7 +616,10 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
                 Text("Update Listing", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
-            TextButton(onClick = { appState.navigate(Screen.SalesDashboard) }) {
+            TextButton(onClick = {
+                appState.userSelectedTab = 1
+                appState.navigate(Screen.UserDashboard)
+            }) {
                 Text("Cancel", color = Color.Gray)
             }
         }
@@ -637,36 +651,5 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
             },
             text = { TimePicker(state = timePickerState) }
         )
-    }
-}
-
-@Composable
-fun SellerTicketItem(listing: TicketListing, onModifyRequest: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(listing.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(listing.eventName, color = Color.Gray, fontSize = 14.sp)
-                Text(
-                    "${listing.date} | $${listing.price.toInt()}",
-                    color = PickTickOrange,
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (listing.status == ListingStatus.SOLD) {
-                    Text("SOLD", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            }
-            IconButton(onClick = onModifyRequest) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Options")
-            }
-        }
     }
 }

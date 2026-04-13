@@ -29,99 +29,69 @@ import com.example.front_end.service.ChatService
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatListScreen(appState: AppState) {
+fun ChatListContent(appState: AppState) {
     val userId = appState.currentUser?.userId ?: ""
-    val backDestination = when (appState.currentUser?.role) {
-        UserRole.SELLER -> Screen.SellerDashboard
-        UserRole.ADMIN -> Screen.AdminDashboard
-        else -> Screen.BuyerDashboard
-    }
     var threads by remember { mutableStateOf(ChatService.getThreadsForUser(userId)) }
     val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Messages", color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = { appState.navigate(backDestination) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
-            )
-        }
-    ) { padding ->
-        if (threads.isEmpty()) {
-            Box(
-                modifier = Modifier.padding(padding).fillMaxSize().background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(72.dp), tint = Color.LightGray)
-                    Text("No messages yet", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                    Text("Start a conversation from a ticket listing.", fontSize = 13.sp, color = Color.LightGray, textAlign = TextAlign.Center)
-                }
+    if (threads.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(72.dp), tint = Color.LightGray)
+                Text("No messages yet", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                Text("Start a conversation from a user's profile.", fontSize = 13.sp, color = Color.LightGray, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.padding(padding).fillMaxSize().background(Color.White)
-            ) {
-                items(threads) { thread ->
-                    val otherId = ChatService.getOtherParticipantId(thread, userId)
-                    val otherUser = remember { AuthService.getUserById(otherId) }
+        }
+    } else {
+        LazyColumn(modifier = Modifier.fillMaxSize().background(Color.White)) {
+            items(threads) { thread ->
+                val otherId = ChatService.getOtherParticipantId(thread, userId)
+                val otherUser = remember { AuthService.getUserById(otherId) }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { appState.navigate(Screen.ChatThread(thread.threadId)) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { appState.navigate(Screen.ChatThread(thread.threadId)) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier.size(52.dp).clip(CircleShape).background(PickTickBlue),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier.size(52.dp).clip(CircleShape).background(PickTickBlue),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = (otherUser?.name?.firstOrNull() ?: "?").toString().uppercase(),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    otherUser?.name ?: "Unknown",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Text(
-                                    timeFormat.format(thread.lastMessageTime),
-                                    fontSize = 11.sp,
-                                    color = Color.LightGray
-                                )
-                            }
-                            Text(
-                                thread.lastMessage.ifBlank { "No messages yet" },
-                                fontSize = 13.sp,
-                                color = Color.Gray,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        Text(
+                            text = (otherUser?.name?.firstOrNull() ?: "?").toString().uppercase(),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
-                    HorizontalDivider(modifier = Modifier.padding(start = 80.dp), color = Color(0xFFF0F0F0))
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(otherUser?.name ?: "Unknown", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(timeFormat.format(thread.lastMessageTime), fontSize = 11.sp, color = Color.LightGray)
+                        }
+                        Text(
+                            thread.lastMessage.ifBlank { "No messages yet" },
+                            fontSize = 13.sp,
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
+                HorizontalDivider(modifier = Modifier.padding(start = 80.dp), color = Color(0xFFF0F0F0))
             }
         }
     }
@@ -131,10 +101,7 @@ fun ChatListScreen(appState: AppState) {
 @Composable
 fun ChatThreadScreen(appState: AppState, threadId: String) {
     val userId = appState.currentUser?.userId ?: ""
-    val backDestination = when (appState.currentUser?.role) {
-        UserRole.ADMIN -> Screen.AdminDashboard
-        else -> Screen.ChatList
-    }
+    val isAdmin = appState.currentUser?.role == UserRole.ADMIN
 
     val thread = remember { ChatService.getThreadsForUser(userId).find { it.threadId == threadId } }
     val otherId = remember(thread) { thread?.let { ChatService.getOtherParticipantId(it, userId) } ?: "" }
@@ -177,7 +144,15 @@ fun ChatThreadScreen(appState: AppState, threadId: String) {
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { appState.navigate(backDestination) }) {
+                    IconButton(onClick = {
+                        if (isAdmin) {
+                            appState.adminSelectedTab = 2
+                            appState.navigate(Screen.AdminDashboard)
+                        } else {
+                            appState.userSelectedTab = 3
+                            appState.navigate(Screen.UserDashboard)
+                        }
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
@@ -211,10 +186,7 @@ fun ChatThreadScreen(appState: AppState, threadId: String) {
                                 inputText = ""
                             }
                         },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(PickTickBlue)
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(PickTickBlue)
                     ) {
                         Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(22.dp))
                     }

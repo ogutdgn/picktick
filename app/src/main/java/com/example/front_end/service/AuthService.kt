@@ -34,4 +34,19 @@ object AuthService {
     fun getUserById(userId: String): User? {
         return MockData.users.find { it.userId == userId }
     }
+
+    fun isEmailRegistered(email: String): Boolean {
+        return MockData.users.any { it.email == email }
+    }
+
+    fun isBanned(email: String): Boolean {
+        return MockData.users.any { it.email == email && !it.isActive }
+    }
+
+    fun changePassword(email: String, newPassword: String): Boolean {
+        val index = MockData.users.indexOfFirst { it.email == email }
+        if (index == -1) return false
+        MockData.users[index] = MockData.users[index].copy(passwordHash = newPassword)
+        return true
+    }
 }

@@ -28,8 +28,6 @@ fun RegisterScreen(appState: AppState) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf(UserRole.BUYER) }
-    var showRoleMenu by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var dob by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
@@ -66,30 +64,6 @@ fun RegisterScreen(appState: AppState) {
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        ExposedDropdownMenuBox(
-            expanded = showRoleMenu,
-            onExpandedChange = { showRoleMenu = !showRoleMenu },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = selectedRole.name.lowercase().replaceFirstChar { it.uppercase() },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("I am a...") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showRoleMenu) },
-                modifier = Modifier.menuAnchor().fillMaxWidth()
-            )
-            ExposedDropdownMenu(expanded = showRoleMenu, onDismissRequest = { showRoleMenu = false }) {
-                listOf(UserRole.BUYER, UserRole.SELLER).forEach { role ->
-                    DropdownMenuItem(
-                        text = { Text(role.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                        onClick = { selectedRole = role; showRoleMenu = false }
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-
         OutlinedTextField(
             value = email,
             onValueChange = { email = it; errorMessage = "" },
@@ -123,7 +97,7 @@ fun RegisterScreen(appState: AppState) {
                     !email.contains("@") -> errorMessage = "Enter a valid email."
                     password.length < 6 -> errorMessage = "Password must be at least 6 characters."
                     else -> {
-                        val success = AuthService.register(fullName.trim(), email.trim(), password, selectedRole)
+                        val success = AuthService.register(fullName.trim(), email.trim(), password, UserRole.USER)
                         if (success) appState.navigate(Screen.Login)
                         else errorMessage = "Email already registered."
                     }

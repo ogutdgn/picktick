@@ -18,7 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,7 +39,7 @@ fun PaymentScreen(appState: AppState) {
     var selectedMethod by remember { mutableStateOf("Credit Card") }
     var cardNumber by remember { mutableStateOf("") }
     var cardHolder by remember { mutableStateOf("") }
-    var expiryDate by remember { mutableStateOf("") }
+    var expiryDate by remember { mutableStateOf(TextFieldValue("")) }
     var cvv by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
     var orderConfirmed by remember { mutableStateOf(false) }
@@ -52,7 +54,10 @@ fun PaymentScreen(appState: AppState) {
             TopAppBar(
                 title = { Text("Checkout", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { appState.navigate(Screen.Cart) }) {
+                    IconButton(onClick = {
+                        appState.userSelectedTab = 2
+                        appState.navigate(Screen.UserDashboard)
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
@@ -85,7 +90,7 @@ fun PaymentScreen(appState: AppState) {
                                 cartListings.isEmpty() -> errorMessage = "Your cart is empty."
                                 selectedMethod == "Credit Card" && cardNumber.length < 16 -> errorMessage = "Enter a valid 16-digit card number."
                                 selectedMethod == "Credit Card" && cardHolder.isBlank() -> errorMessage = "Enter the card holder name."
-                                selectedMethod == "Credit Card" && expiryDate.isBlank() -> errorMessage = "Enter the expiry date."
+                                selectedMethod == "Credit Card" && expiryDate.text.isBlank() -> errorMessage = "Enter the expiry date."
                                 selectedMethod == "Credit Card" && cvv.length < 3 -> errorMessage = "Enter a valid CVV."
                                 else -> {
                                     OrderService.createOrders(userId, cartListings)
@@ -203,12 +208,11 @@ fun PaymentScreen(appState: AppState) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedTextField(
                                 value = expiryDate,
-                                onValueChange = {
-                                    if (it.length <= 5) {
-                                        val digits = it.filter { c -> c.isDigit() }
-                                        expiryDate = if (digits.length >= 3) "${digits.take(2)}/${digits.drop(2)}" else digits
-                                        errorMessage = ""
-                                    }
+                                onValueChange = { input ->
+                                    val digits = input.text.filter { it.isDigit() }.take(4)
+                                    val formatted = if (digits.length >= 3) "${digits.take(2)}/${digits.drop(2)}" else digits
+                                    expiryDate = TextFieldValue(formatted, selection = TextRange(formatted.length))
+                                    errorMessage = ""
                                 },
                                 label = { Text("MM/YY") },
                                 modifier = Modifier.weight(1f),
@@ -317,7 +321,10 @@ fun PaymentSuccessScreen(appState: AppState, total: Double, itemCount: Int) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { appState.navigate(Screen.BuyerDashboard) },
+                onClick = {
+                    appState.userSelectedTab = 0
+                    appState.navigate(Screen.UserDashboard)
+                },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PickTickBlue)
@@ -326,7 +333,10 @@ fun PaymentSuccessScreen(appState: AppState, total: Double, itemCount: Int) {
             }
 
             OutlinedButton(
-                onClick = { appState.navigate(Screen.Profile) },
+                onClick = {
+                    appState.userSelectedTab = -1
+                    appState.navigate(Screen.UserDashboard)
+                },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {

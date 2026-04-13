@@ -2,9 +2,7 @@ package com.example.front_end.service
 
 import com.example.front_end.data.MockData
 import com.example.front_end.model.ListingStatus
-import com.example.front_end.model.ProofType
 import com.example.front_end.model.TicketListing
-import com.example.front_end.model.TicketType
 import java.util.Date
 import java.util.UUID
 
@@ -33,7 +31,8 @@ object TicketService {
         seat: String,
         description: String,
         sellerId: String,
-        proofCode: String
+        proofCode: String,
+        published: Boolean = true
     ): Boolean {
         val newListing = TicketListing(
             id = UUID.randomUUID().toString(),
@@ -47,9 +46,7 @@ object TicketService {
             seat = seat,
             description = description,
             sellerId = sellerId,
-            status = ListingStatus.ACTIVE,
-            ticketType = TicketType.DIGITAL,
-            proofType = ProofType.CONFIRMATION_CODE,
+            status = if (published) ListingStatus.ACTIVE else ListingStatus.UNPUBLISHED,
             proofCode = proofCode,
             createdAt = Date()
         )
@@ -61,6 +58,15 @@ object TicketService {
         val index = MockData.listings.indexOfFirst { it.id == updated.id }
         if (index == -1) return false
         MockData.listings[index] = updated
+        return true
+    }
+
+    fun togglePublish(id: String): Boolean {
+        val index = MockData.listings.indexOfFirst { it.id == id }
+        if (index == -1) return false
+        val listing = MockData.listings[index]
+        val newStatus = if (listing.status == ListingStatus.ACTIVE) ListingStatus.UNPUBLISHED else ListingStatus.ACTIVE
+        MockData.listings[index] = listing.copy(status = newStatus)
         return true
     }
 

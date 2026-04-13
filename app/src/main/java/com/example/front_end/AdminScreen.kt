@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,10 +36,9 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardShell(appState: AppState) {
-    var selectedTab by remember { mutableStateOf(0) }
+    val tab = appState.adminSelectedTab
     var selectedUser by remember { mutableStateOf<User?>(null) }
-    var showLogoutDialog by remember { mutableStateOf(false) }
-    val tabs = listOf("Users", "Listings")
+    var showDropdown by remember { mutableStateOf(false) }
 
     if (selectedUser != null) {
         AdminUserDetail(
@@ -51,59 +52,93 @@ fun AdminDashboardShell(appState: AppState) {
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("Admin Dashboard", color = Color.White) },
-                    actions = {
-                        IconButton(onClick = { showLogoutDialog = true }) {
-                            Icon(Icons.Default.ExitToApp, contentDescription = "Logout", tint = Color.White)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
-                )
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = PickTickBlue,
-                    contentColor = Color.White
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = {
-                                Text(
-                                    title,
-                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
+            TopAppBar(
+                title = {
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        Text(
+                            text = "🎫  PickTick",
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PickTickOrange,
+                                drawStyle = Stroke(miter = 10f, width = 5f)
+                            )
+                        )
+                        Text(
+                            text = "🎫  PickTick",
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
                         )
                     }
-                }
+                },
+                actions = {
+                    Box {
+                        TextButton(onClick = { showDropdown = true }) {
+                            Text("Admin", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = Color.White)
+                        }
+                        DropdownMenu(
+                            expanded = showDropdown,
+                            onDismissRequest = { showDropdown = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Log Out", color = Color.Red, fontWeight = FontWeight.SemiBold) },
+                                onClick = { showDropdown = false; appState.logout() },
+                                leadingIcon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = Color.Red) }
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
+            )
+        },
+        bottomBar = {
+            NavigationBar(containerColor = Color.White, tonalElevation = 6.dp) {
+                NavigationBarItem(
+                    selected = tab == 0,
+                    onClick = { appState.adminSelectedTab = 0 },
+                    icon = { Icon(Icons.Default.People, contentDescription = null) },
+                    label = { Text("Users") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PickTickBlue,
+                        selectedTextColor = PickTickBlue,
+                        indicatorColor = PickTickBlue.copy(alpha = 0.12f)
+                    )
+                )
+                NavigationBarItem(
+                    selected = tab == 1,
+                    onClick = { appState.adminSelectedTab = 1 },
+                    icon = { Icon(Icons.Default.List, contentDescription = null) },
+                    label = { Text("Listings") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PickTickBlue,
+                        selectedTextColor = PickTickBlue,
+                        indicatorColor = PickTickBlue.copy(alpha = 0.12f)
+                    )
+                )
+                NavigationBarItem(
+                    selected = tab == 2,
+                    onClick = { appState.adminSelectedTab = 2 },
+                    icon = { Icon(Icons.Default.Chat, contentDescription = null) },
+                    label = { Text("Messages") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PickTickBlue,
+                        selectedTextColor = PickTickBlue,
+                        indicatorColor = PickTickBlue.copy(alpha = 0.12f)
+                    )
+                )
             }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF5F5F5))) {
-            when (selectedTab) {
+            when (tab) {
                 0 -> AdminUsersTab(onUserClick = { selectedUser = it })
                 1 -> AdminListingsTab()
+                2 -> ChatListContent(appState)
             }
-        }
-
-        if (showLogoutDialog) {
-            AlertDialog(
-                onDismissRequest = { showLogoutDialog = false },
-                title = { Text("Log Out") },
-                text = { Text("Are you sure you want to log out?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showLogoutDialog = false
-                        appState.logout()
-                    }) { Text("Yes", color = Color.Red) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showLogoutDialog = false }) { Text("No") }
-                }
-            )
         }
     }
 }
@@ -113,8 +148,8 @@ fun AdminDashboardShell(appState: AppState) {
 fun AdminUserDetail(user: User, appState: AppState, onBack: () -> Unit, onUserUpdated: () -> Unit) {
     val adminId = appState.currentUser?.userId ?: ""
     val reviews = remember(user.userId) { MockData.reviews.filter { it.targetId == user.userId } }
-    val sellerListings = remember(user.userId) {
-        if (user.role == UserRole.SELLER) TicketService.getListingsBySeller(user.userId) else emptyList()
+    val userListings = remember(user.userId) {
+        TicketService.getListingsBySeller(user.userId)
     }
     var isBanned by remember { mutableStateOf(!user.isActive) }
     var showBanDialog by remember { mutableStateOf(false) }
@@ -296,11 +331,11 @@ fun AdminUserDetail(user: User, appState: AppState, onBack: () -> Unit, onUserUp
                 }
             }
 
-            if (sellerListings.isNotEmpty()) {
+            if (userListings.isNotEmpty()) {
                 item {
                     Text("Listings", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color(0xFF333333))
                 }
-                items(sellerListings) { listing ->
+                items(userListings) { listing ->
                     Card(
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.cardElevation(2.dp),
@@ -318,7 +353,11 @@ fun AdminUserDetail(user: User, appState: AppState, onBack: () -> Unit, onUserUp
                             }
                             StatusBadge(
                                 listing.status.name,
-                                if (listing.status.name == "ACTIVE") PickTickBlue else Color.Gray
+                                when (listing.status.name) {
+                                    "ACTIVE" -> PickTickBlue
+                                    "SOLD" -> Color.Red
+                                    else -> Color.Gray
+                                }
                             )
                         }
                     }
@@ -460,7 +499,11 @@ fun AdminListingCard(listing: TicketListing, onDelete: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                     StatusBadge(
                         listing.status.name,
-                        if (listing.status.name == "ACTIVE") PickTickBlue else Color.Gray
+                        when (listing.status.name) {
+                            "ACTIVE" -> PickTickBlue
+                            "SOLD" -> Color.Red
+                            else -> Color.Gray
+                        }
                     )
                     RoleBadge(listing.category)
                 }

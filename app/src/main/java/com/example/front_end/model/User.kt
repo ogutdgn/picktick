@@ -2,7 +2,7 @@ package com.example.front_end.model
 
 import java.util.Date
 
-enum class UserRole { BUYER, SELLER, ADMIN }
+enum class UserRole { USER, ADMIN }
 
 data class User(
     val userId: String,
