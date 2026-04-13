@@ -1,82 +1,180 @@
 package com.example.front_end
 
-import androidx.compose.runtime.Composable
-import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.FilterChip
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.foundation.background
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.size
 import android.app.DatePickerDialog
-import java.util.Calendar
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-
-
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.front_end.model.TicketListing
+import com.example.front_end.model.UserRole
+import com.example.front_end.navigation.AppState
+import com.example.front_end.navigation.Screen
+import com.example.front_end.service.CartService
+import com.example.front_end.service.OrderService
+import com.example.front_end.service.ReviewService
+import com.example.front_end.service.TicketService
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BuyerDashboard(onTicketClick: (TicketListing) -> Unit,
-                   cartList: MutableList<TicketListing>) { // Pass navigation up
+fun BuyerDashboardShell(appState: AppState) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text("PickTick Menu", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                HorizontalDivider()
+
+                NavigationDrawerItem(
+                    label = { Text("Marketplace") },
+                    selected = true,
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    onClick = { scope.launch { drawerState.close() } }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Shopping Cart") },
+                    selected = false,
+                    icon = { Icon(Icons.Default.ShoppingCart, contentDescription = null) },
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        appState.navigate(Screen.Cart)
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text("User Profile") },
+                    selected = false,
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        appState.navigate(Screen.Profile)
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text("Chatbox") },
+                    selected = false,
+                    icon = { Icon(Icons.Default.Chat, contentDescription = null) },
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        appState.navigate(Screen.ChatList)
+                    }
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                NavigationDrawerItem(
+                    label = { Text("Log Out") },
+                    selected = false,
+                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
+                    onClick = {
+                        showLogoutDialog = true
+                        scope.launch { drawerState.close() }
+                    }
+                )
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.1f), color = PickTickBlue) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
+                        }
+                        Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "🎫  PickTick  🎫",
+                                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PickTickOrange, drawStyle = Stroke(miter = 10f, width = 5f))
+                            )
+                            Text(
+                                text = "🎫  PickTick  🎫",
+                                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            )
+                        }
+                    }
+                }
+            }
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(Color(0xFFE0E0E0))) {
+                BuyerMarketplace(appState)
+            }
+        }
+
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text("Log Out") },
+                text = { Text("Are you sure you want to log out?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogoutDialog = false
+                        appState.logout()
+                    }) { Text("Yes", color = Color.Red) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) { Text("No") }
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BuyerMarketplace(appState: AppState) {
     var searchQuery by remember { mutableStateOf("") }
     val categories = listOf("All", "Music", "Sports", "Expo", "Theater", "Travel")
     var selectedCategory by remember { mutableStateOf("All") }
+    val listings = remember { TicketService.getAllActiveListings() }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
-        // 1. STYLED SEARCH BAR
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            // The grey "Search" word that disappears when you type
-            placeholder = {
-                Text("Search", color = Color.Gray)
-            },
-            // The magnifying glass icon on the left
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = Color.Gray
-                )
-            },
-            shape = RoundedCornerShape(25.dp), // Pill shape looks very modern
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            placeholder = { Text("Search", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+            shape = RoundedCornerShape(25.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedBorderColor = PickTickOrange, // Use the theme color
-                unfocusedBorderColor = Color.Transparent, // Makes it look cleaner
-                cursorColor = Color.Black
+                focusedBorderColor = PickTickOrange,
+                unfocusedBorderColor = Color.Transparent
             ),
             singleLine = true
         )
 
-        // 2. Horizontal Category Filter (Keep your existing code here)
         LazyRow(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -89,29 +187,344 @@ fun BuyerDashboard(onTicketClick: (TicketListing) -> Unit,
                 )
             }
         }
-        // 3. Price Range Bar
+
         PriceRangeBar()
-        // 4. Date Range Filter
         DateRangeFilter()
 
-        // 5. The Results List
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp)
-        ) {
-            val filteredList = fakeListings.filter {
+        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
+            val filtered = listings.filter {
                 (selectedCategory == "All" || it.category == selectedCategory) &&
-                        (it.title.contains(searchQuery, ignoreCase = true) || it.location.contains(searchQuery, ignoreCase = true))
+                        (it.title.contains(searchQuery, ignoreCase = true) ||
+                                it.location.contains(searchQuery, ignoreCase = true))
             }
-
-            items(filteredList) { listing ->
-                // Now passing the actual navigation click
-                TicketItem(listing = listing, onClick = { onTicketClick(listing) })
+            items(filtered) { listing ->
+                TicketItem(listing = listing, onClick = { appState.navigate(Screen.TicketDetail(listing.id)) })
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TicketDetailScreen(appState: AppState, ticketId: String) {
+    val ticket = remember { TicketService.getListingById(ticketId) }
+    val userId = appState.currentUser?.userId ?: ""
+    val userRole = appState.currentUser?.role
+    val isInCart = remember(ticketId) { CartService.isInCart(ticketId, userId) }
+    var addedToCart by remember { mutableStateOf(isInCart) }
+    var cartMessage by remember { mutableStateOf("") }
+    val backDestination = when (userRole) {
+        UserRole.SELLER -> Screen.SellerDashboard
+        UserRole.ADMIN -> Screen.AdminDashboard
+        else -> Screen.BuyerDashboard
+    }
+
+    if (ticket == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Ticket not found.")
+        }
+        return
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("${ticket.title} — ${ticket.id}", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = { appState.navigate(backDestination) }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
+            )
+        },
+        bottomBar = {
+            if (userRole == UserRole.BUYER) {
+                Surface(modifier = Modifier.fillMaxWidth(), color = Color.White, shadowElevation = 8.dp) {
+                    Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
+                        if (cartMessage.isNotEmpty()) {
+                            Text(cartMessage, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                        }
+                        Button(
+                            onClick = {
+                                if (!addedToCart) {
+                                    val success = CartService.addItem(ticket.id, userId)
+                                    if (success) {
+                                        addedToCart = true
+                                        cartMessage = "Added to cart!"
+                                    } else {
+                                        cartMessage = "Already in cart or purchased."
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (addedToCart) Color.Gray else PickTickOrange
+                            ),
+                            enabled = !addedToCart
+                        ) {
+                            Text(
+                                text = if (addedToCart) "Added to Cart" else "Add to Shopping Cart",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(200.dp).background(Color.LightGray, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Proof of Ticket", color = Color.DarkGray)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            DetailRow("Event", ticket.eventName)
+            DetailRow("Date / Time", "${ticket.date} @ ${ticket.time}")
+            DetailRow("Location", ticket.location)
+            DetailRow("Price", "$${ticket.price.toInt()}")
+            DetailRow("Category", ticket.category)
+            DetailRow("Seat", ticket.seat)
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            Text("Description", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(ticket.description, color = Color.Gray)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CartScreen(appState: AppState) {
+    val userId = appState.currentUser?.userId ?: ""
+    var cartListings by remember { mutableStateOf(CartService.getCartListings(userId)) }
+    val selectedTicketIds = remember { mutableStateListOf<String>() }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("My Cart (${cartListings.size})", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = { appState.navigate(Screen.BuyerDashboard) }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
+            )
+        },
+        bottomBar = {
+            if (cartListings.isNotEmpty()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Total: $${cartListings.sumOf { it.price }.let { "%.2f".format(it) }}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = PickTickBlue
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { appState.navigate(Screen.Payment) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PickTickBlue)
+                    ) {
+                        Text("Proceed to Payment", color = Color.White)
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        if (cartListings.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Your cart is empty!", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+                items(cartListings) { ticket ->
+                    Box(modifier = Modifier.padding(vertical = 8.dp)) {
+                        TicketItem(listing = ticket, onClick = {})
+
+                        val isSelected = ticket.id in selectedTicketIds
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                                .size(24.dp)
+                                .background(if (isSelected) PickTickBlue else Color.White, RoundedCornerShape(4.dp))
+                                .border(1.dp, PickTickBlue, RoundedCornerShape(4.dp))
+                                .clickable {
+                                    if (isSelected) selectedTicketIds.remove(ticket.id)
+                                    else selectedTicketIds.add(ticket.id)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) Icon(Icons.Default.Check, "", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+
+                        IconButton(
+                            onClick = {
+                                CartService.removeItem(ticket.id, userId)
+                                cartListings = CartService.getCartListings(userId)
+                                selectedTicketIds.remove(ticket.id)
+                            },
+                            modifier = Modifier.align(Alignment.BottomEnd)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove", tint = Color.Red)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileScreen(appState: AppState) {
+    val user = appState.currentUser
+    val orders = remember { if (user != null) OrderService.getOrdersByBuyer(user.userId) else emptyList() }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("User Profile", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        when (user?.role) {
+                            UserRole.BUYER -> appState.navigate(Screen.BuyerDashboard)
+                            UserRole.SELLER -> appState.navigate(Screen.SellerDashboard)
+                            else -> appState.navigate(Screen.BuyerDashboard)
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier.fillMaxSize().background(Color(0xFFF8F8F8)).padding(padding).verticalScroll(rememberScrollState())
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier.size(90.dp).clip(CircleShape).background(PickTickBlue),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(55.dp), tint = Color.White)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(user?.name ?: "Unknown", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(user?.email ?: "", fontSize = 14.sp, color = Color.Gray)
+                    Text(
+                        text = "Rating: ${"%.1f".format(user?.rating ?: 0f)} (${user?.reviewCount ?: 0} reviews)",
+                        fontSize = 13.sp,
+                        color = PickTickOrange
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            Text(
+                "Purchase History",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(16.dp)
+            )
+
+            if (orders.isEmpty()) {
+                Text("No purchases yet.", color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp))
+            } else {
+                orders.forEach { order ->
+                    val ticket = TicketService.getListingById(order.ticketId)
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(ticket?.title ?: order.ticketId, fontWeight = FontWeight.SemiBold)
+                            Text("$${order.totalPrice.toInt()}", color = PickTickOrange, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TicketItem(listing: TicketListing, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(8.dp).clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(listing.title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PickTickBlue, modifier = Modifier.padding(bottom = 8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxHeight().background(Color.LightGray, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Image Placeholder", fontSize = 10.sp, color = Color.Gray)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    DetailChip(listing.date)
+                    DetailChip(listing.time)
+                    DetailChip(listing.location)
+                    DetailChip("$${listing.price.toInt()}", isPrice = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailChip(text: String, isPrice: Boolean = false) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isPrice) PickTickOrange.copy(alpha = 0.2f) else Color(0xFFF0F0F0),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            fontSize = 12.sp,
+            fontWeight = if (isPrice) FontWeight.Bold else FontWeight.Normal,
+            color = if (isPrice) PickTickOrange else Color.DarkGray
+        )
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String) {
+    Row(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text("$label: ", fontWeight = FontWeight.Bold, color = PickTickBlue)
+        Text(value)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PriceRangeBar() {
@@ -120,29 +533,23 @@ fun PriceRangeBar() {
 
     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(text = "Price Range", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-
-        // 3. THE INPUT BOXES (Min and Max side by side)
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Min Price Box
             OutlinedTextField(
                 value = minPriceInput,
-                onValueChange = { if (it.all { char -> char.isDigit() }) minPriceInput = it },
+                onValueChange = { if (it.all { c -> c.isDigit() }) minPriceInput = it },
                 modifier = Modifier.weight(1f),
                 label = { Text("Min $") },
                 singleLine = true,
                 shape = RoundedCornerShape(8.dp)
             )
-
             Text("-", fontWeight = FontWeight.Bold)
-
-            // Max Price Box
             OutlinedTextField(
                 value = maxPriceInput,
-                onValueChange = { if (it.all { char -> char.isDigit() }) maxPriceInput = it },
+                onValueChange = { if (it.all { c -> c.isDigit() }) maxPriceInput = it },
                 modifier = Modifier.weight(1f),
                 label = { Text("Max $") },
                 singleLine = true,
@@ -151,22 +558,18 @@ fun PriceRangeBar() {
         }
     }
 }
+
 @Composable
 fun DateRangeFilter() {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
-
-    // States to hold the selected dates as strings
     var startDate by remember { mutableStateOf("Start Date") }
     var endDate by remember { mutableStateOf("End Date") }
 
-    // Helper function to show the system DatePicker
     fun showDatePicker(onDateSelected: (String) -> Unit) {
         DatePickerDialog(
             context,
-            { _, year, month, dayOfMonth ->
-                onDateSelected("$dayOfMonth/${month + 1}/$year")
-            },
+            { _, year, month, day -> onDateSelected("$day/${month + 1}/$year") },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
@@ -175,14 +578,10 @@ fun DateRangeFilter() {
 
     Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(text = "Date", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Start Date Button
             OutlinedButton(
                 onClick = { showDatePicker { startDate = it } },
                 modifier = Modifier.weight(1f),
@@ -193,8 +592,6 @@ fun DateRangeFilter() {
                 Spacer(Modifier.width(8.dp))
                 Text(text = startDate, color = Color.DarkGray, fontSize = 12.sp)
             }
-
-            // End Date Button
             OutlinedButton(
                 onClick = { showDatePicker { endDate = it } },
                 modifier = Modifier.weight(1f),
@@ -204,85 +601,6 @@ fun DateRangeFilter() {
                 Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(text = endDate, color = Color.DarkGray, fontSize = 12.sp)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ShoppingCartScreen(
-    cartTickets: List<TicketListing>,
-    onBack: () -> Unit,
-    onCheckout: () -> Unit
-) {
-    // State for those small blue boxes you wanted
-    val selectedTicketIds = remember { mutableStateListOf<String>() }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("My Cart (${cartTickets.size})", color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PickTickBlue)
-            )
-        },
-                bottomBar = {
-            if (cartTickets.isNotEmpty()) {
-                Button(
-                    onClick = onCheckout,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PickTickBlue)
-                ) {
-                    Text("Proceed to Payment", color = Color.White)
-
-                }
-            }
-        }
-
-
-    ) { padding ->
-        if (cartTickets.isEmpty()) {
-            // THE "EMPTY" FACE
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Your cart is empty!!", color = Color.Gray)
-            }
-        } else {
-            // THE "LIST" FACE
-            LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-                items(cartTickets) { ticket ->
-                    Box(modifier = Modifier.padding(vertical = 8.dp)) {
-                        // Reusing your dashboard's ticket item
-                        TicketItem(listing = ticket, onClick = {})
-
-                        // Small Blue Box for selecting (Top Right)
-                        val isSelected = ticket.id in selectedTicketIds
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                                .size(24.dp)
-                                .background(
-                                    if (isSelected) PickTickBlue else Color.White,
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .border(1.dp, PickTickBlue, RoundedCornerShape(4.dp))
-                                .clickable {
-                                    if (isSelected) selectedTicketIds.remove(ticket.id)
-                                    else selectedTicketIds.add(ticket.id)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isSelected) Icon(Icons.Default.Check, "", tint = Color.White, modifier = Modifier.size(16.dp))
-                        }
-                    }
-                }
             }
         }
     }
