@@ -45,7 +45,9 @@ import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Dashboard
-
+import com.example.picktick.SQLiteHelper_Listings
+import android.util.Log
+import com.example.back_end.SQLiteUserDataBaseHelper
 
 
 val PickTickBlue = Color(0xFF0074BD)
@@ -54,6 +56,10 @@ val PickTickOrange = Color(0xFFFF9800)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val user_db = SQLiteUserDataBaseHelper.SQLiteUser_DataBase_Helper(this)
+        val num = user_db.addUser("f", "f", "f@f.com", "f", true, "f")
+        Log.d("custom", num.toString())
+        Log.d("custom", user_db.get_listing_from_id(num.toInt()).toString())
         super.onCreate(savedInstanceState)
         setContent {
             MainNavigation()
