@@ -86,7 +86,7 @@ fun ProfileScreen(appState: AppState) {
                             val ticket = TicketService.getListingById(order.ticketId)
                             val seller = AuthService.getUserById(order.sellerId)
                             var showReviewDialog by remember { mutableStateOf(false) }
-                            val alreadyReviewed = remember { ReviewService.hasUserReviewed(user.userId, order.sellerId) }
+                            var alreadyReviewed by remember { mutableStateOf(ReviewService.hasUserReviewed(user.userId, order.sellerId)) }
 
                             if (showReviewDialog) {
                                 ReviewDialog(
@@ -94,6 +94,7 @@ fun ProfileScreen(appState: AppState) {
                                     onDismiss = { showReviewDialog = false },
                                     onSubmit = { rating ->
                                         ReviewService.submitReview(user.userId, order.sellerId, rating)
+                                        alreadyReviewed = true
                                         showReviewDialog = false
                                     }
                                 )
@@ -141,7 +142,7 @@ fun ProfileScreen(appState: AppState) {
                             val ticket = TicketService.getListingById(order.ticketId)
                             val buyer = AuthService.getUserById(order.buyerId)
                             var showReviewDialog by remember { mutableStateOf(false) }
-                            val alreadyReviewed = remember { ReviewService.hasUserReviewed(user.userId, order.buyerId) }
+                            var alreadyReviewed by remember { mutableStateOf(ReviewService.hasUserReviewed(user.userId, order.buyerId)) }
 
                             if (showReviewDialog) {
                                 ReviewDialog(
@@ -149,6 +150,7 @@ fun ProfileScreen(appState: AppState) {
                                     onDismiss = { showReviewDialog = false },
                                     onSubmit = { rating ->
                                         ReviewService.submitReview(user.userId, order.buyerId, rating)
+                                        alreadyReviewed = true
                                         showReviewDialog = false
                                     }
                                 )

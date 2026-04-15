@@ -39,6 +39,7 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
     var description by remember { mutableStateOf(ticket.description) }
     var dateText by remember { mutableStateOf(ticket.date) }
     var timeText by remember { mutableStateOf(ticket.time) }
+    var proofCode by remember { mutableStateOf(ticket.proofCode) }
 
     val categories = listOf("Music", "Sports", "Expo", "Theater", "Travel")
     var selectedCategory by remember { mutableStateOf(ticket.category) }
@@ -134,6 +135,9 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 maxLines = 4
             )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(value = proofCode, onValueChange = { proofCode = it }, label = { Text("Confirmation Number") }, modifier = Modifier.fillMaxWidth())
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -148,7 +152,8 @@ fun ModifyListingScreen(appState: AppState, ticketId: String) {
                             location = location.trim(),
                             category = selectedCategory,
                             seat = seat.trim(),
-                            description = description.trim()
+                            description = description.trim(),
+                            proofCode = proofCode.trim()
                         )
                     )
                     appState.userSelectedTab = 1

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import com.example.picktick.data.DatabaseManager
 import com.example.picktick.navigation.AppState
+import com.example.picktick.service.SeedData
 import com.example.picktick.navigation.Screen
 import com.example.picktick.ui.screen.auth.LoginScreen
 import com.example.picktick.ui.screen.auth.PasswordResetScreen
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DatabaseManager.init(this)
+        SeedData.populate()
         setContent {
             val appState = remember { AppState() }
             AppNavigation(appState)
